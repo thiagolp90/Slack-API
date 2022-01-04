@@ -1,5 +1,6 @@
 {
     "name": "developes/slack",
+    "version": "1.0",
     "description": "Send messages with Slack API.",
     "type": "library",
     "license": "MIT",
@@ -7,6 +8,11 @@
         "psr-4": {
             "Developes\\Slack\\": "src/",
             "Developes\\Slack\\Database\\Factories\\": "database/factories"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Developes\\Slack\\Tests\\": "tests/"
         }
     },
     "authors": [

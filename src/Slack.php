@@ -55,15 +55,12 @@ class Slack
      */
     public function sendMessage(string $to, string $message){
         if(!$this->delayed){
-            dd(config('app.slack.token'));
+            dd(config('slack.token'));
             $data = [
-                'token' => config('app.slack.token'),
                 'channel' => $to,
-                'text' => $message,
-                'username' => config('app.slack.username')
+                'text' => $message
             ];
-
-            Http::asForm()->post('https://slack.com/api/chat.postMessage', $data);
+            $this->request('chat.postMessage', $data);
 
             $this->timeToDelay = now();
         }
@@ -74,5 +71,50 @@ class Slack
             'slack_id' => $to
         ];
         SlackNotification::insert($data);
+    }
+
+    /**
+     * Get the user identity
+     * @param string $slackId
+     * @return array
+     */
+    public function getUserIdentity($slackId){
+        $data = ['user' => $slackId];
+        $result = $this->request('users.identity', $data, 'GET');
+
+        return json_decode($result, true);
+    }
+
+    /**
+     * Get a list of users
+     * @return array
+     */
+    public function getUsersList(){
+        $result = $this->request('users.identity', [], 'GET');
+
+        return json_decode($result, true);
+    }
+
+    /**
+     * Send the request to API Slack
+     * @param string $endpoint
+     * @param array $message
+     * @param string $verb
+     */
+    public function request(string $endpoint, array $data = [], string $verb = 'POST'){
+        $default = [
+            'token' => config('slack.token'),
+            'username' => config('slack.username')
+        ];
+
+        $data = array_merge($default, $data);
+
+        if($verb == 'POST'){
+            $response = Http::asForm()->post('https://slack.com/api/'.$endpoint, $data);
+        }else{
+            $response = Http::asForm()->get('https://slack.com/api/'.$endpoint, $data);
+        }
+
+        return $response;
     }
 }
