@@ -54,23 +54,28 @@ class Slack
      * @param string $message
      */
     public function sendMessage(string $to, string $message){
+        $checkSent = true;
         if(!$this->delayed){
-            dd(config('slack.token'));
-            $data = [
-                'channel' => $to,
-                'text' => $message
-            ];
-            $this->request('chat.postMessage', $data);
-
             $this->timeToDelay = now();
+            try {
+                $data = [
+                    'channel' => $to,
+                    'text' => $message
+                ];
+                $this->request('chat.postMessage', $data);
+            } catch (\Throwable $th) {
+                $checkSent = false;
+            }
         }
-
         $data = [
             'sended_at' => $this->timeToDelay,
             'message' => $message,
             'slack_id' => $to
         ];
-        SlackNotification::insert($data);
+        $slack = SlackNotification::create($data);
+        if($checkSent){
+            $slack->delete();
+        }
     }
 
     /**
@@ -79,8 +84,12 @@ class Slack
      * @return array
      */
     public function getUserIdentity($slackId){
-        $data = ['user' => $slackId];
-        $result = $this->request('users.identity', $data, 'GET');
+        try {
+            $data = ['user' => $slackId];
+            $result = $this->request('users.identity', $data, 'GET');
+        } catch (\Throwable $th) {
+            return ['success' => false];
+        }
 
         return json_decode($result, true);
     }
@@ -90,7 +99,11 @@ class Slack
      * @return array
      */
     public function getUsersList(){
-        $result = $this->request('users.identity', [], 'GET');
+        try {
+            $result = $this->request('users.identity', [], 'GET');
+        } catch (\Throwable $th) {
+            return ['success' => false];
+        }
 
         return json_decode($result, true);
     }
