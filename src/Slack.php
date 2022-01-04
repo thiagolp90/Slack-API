@@ -73,7 +73,7 @@ class Slack
             'slack_id' => $to
         ];
         $slack = SlackNotification::create($data);
-        if($checkSent){
+        if($checkSent && !$this->delayed){
             $slack->delete();
         }
     }
