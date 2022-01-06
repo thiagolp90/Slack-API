@@ -1,5 +1,5 @@
 {
-    "name": "developes/slack",
+    "name": "thiagolp90/slack",
     "version": "1.0",
     "description": "Send messages with Slack API.",
     "type": "library",
@@ -21,7 +21,9 @@
             "email": "thiagolp.90@gmail.com"
         }
     ],
-    "require": {},
+    "require": {
+        "php": "^7.3|^8.0"
+    },
     "extra": {
         "laravel": {
             "providers": [
