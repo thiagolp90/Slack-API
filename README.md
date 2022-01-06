@@ -8,7 +8,7 @@ Em andamento.
 
 ## Configuração
 
-Configure as variáveis de ambiente no arquivo **.env** com os dados de sua aplicação Slack (Ela precisa de ser configurada corretamente e ter as permissões necessárias para isto).
+Configure as variáveis de ambiente no arquivo **.env** com os dados de sua aplicação Slack (Sua aplicação precisa de ser configurada corretamente e ter as permissões necessárias para isto).
 
 ```
 SLACK_TOKEN=XXXXXXXXX
@@ -21,7 +21,7 @@ Faça a migração para poder salvar o histórico das mensagens enviadas e para 
 php artisan migrate
 ```
 
-Adicione no seu [Scheduling Queued Job](https://laravel.com/docs/master/scheduling#scheduling-queued-jobs) no arquivo **app/Console/Kernel.php** para enviar as mensagens com delay (Seu servidor precisa estar configurado para enviar estas mensagens via crontab):
+Adicione no seu [Scheduling Queued Job](https://laravel.com/docs/master/scheduling#scheduling-queued-jobs) no arquivo **app/Console/Kernel.php** para enviar as mensagens com delay (Seu servidor precisa estar configurado para executar tarefas via crontab):
 
 ```php
 use Developes\Slack\Jobs\SendSlackNotifications;
@@ -35,8 +35,8 @@ $schedule->job(new SendSlackNotifications)->everyMinute();
 ```php
 use Developes\Slack\Facades\Slack;
 
-//Enviar uma mensagem instantânea
-Slack::sendMessage('SLACKID', 'Test');
+//Enviar uma mensagem instantânea, SLACKID pode ser ou um ID de usuário como um canal (não esqueça de adicionar o seu aplicativo ao canal específico)
+Slack::sendMessage('#meucanal', 'Test');
 
 //Enviar uma mensagem em um horário específico, sendAt recebe como parametro um objeto Carbon
 Slack::sendAt(now()->addMinutes(5))->sendMessage('SLACKID', 'Test with sendAt');
