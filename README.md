@@ -4,7 +4,9 @@ Pacote Laravel para enviar mensagens instantâneas e com delay via Slack API.
 
 ## Instalação
 
-Em andamento.
+```
+composer require thiagolp90/slack
+```
 
 ## Configuração
 
