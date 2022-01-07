@@ -11,6 +11,11 @@ class Slack
     public $delayed = false;
     public $timeToDelay;
 
+    public function __construct()
+    {
+        $this->timeToDelay = now();
+    }
+
     /**
      * Add a delay to send
      * @param int $time
@@ -55,8 +60,13 @@ class Slack
      */
     public function sendMessage(string $to, string $message){
         $checkSent = true;
+        $data = [
+            'sended_at' => $this->timeToDelay,
+            'message' => $message,
+            'slack_id' => $to
+        ];
+        $slack = SlackNotification::create($data);
         if(!$this->delayed){
-            $this->timeToDelay = now();
             try {
                 $data = [
                     'channel' => $to,
@@ -66,15 +76,70 @@ class Slack
             } catch (\Throwable $th) {
                 $checkSent = false;
             }
+            if($checkSent){
+                $slack->delete();
+            }
         }
+    }
+
+    public function sendMessageWithConfirmButtons(string $to, string $message, array $buttons = ['Yes', 'No'])
+    {
+        $checkSent = true;
         $data = [
             'sended_at' => $this->timeToDelay,
             'message' => $message,
+            'with_confirm_buttons' => true,
             'slack_id' => $to
         ];
         $slack = SlackNotification::create($data);
-        if($checkSent && !$this->delayed){
-            $slack->delete();
+        if(!$this->delayed){
+            try {
+                $data = [
+                    'channel' => $to,
+                    'text' => $message,
+                    'blocks' => [
+                        [
+                            "type" => "section",
+                            "text" => [
+                                "type" => "mrkdwn",
+                                "text" => $message
+                            ]
+                        ],
+                        [
+                            "type" => "actions",
+                            "block_id" => $slack->id,
+                            "elements" => [
+                                [
+                                    "type" => "button",
+                                    "text" => [
+                                        "type" => "plain_text",
+                                        "text" => $buttons[0],
+                                        "emoji" => false
+                                    ],
+                                    "style" => "green",
+                                    "value" => 1
+                                ],
+                                [
+                                    "type" => "button",
+                                    "text" => [
+                                        "type" => "plain_text",
+                                        "text" => $buttons[1],
+                                        "emoji" => false
+                                    ],
+                                    "style" => "red",
+                                    "value" => 0
+                                ],
+                            ]
+                        ]
+                    ]
+                ];
+                $this->request('chat.postMessage', $data);
+            } catch (\Throwable $th) {
+                $checkSent = false;
+            }
+            if($checkSent){
+                $slack->delete();
+            }
         }
     }
 
@@ -127,6 +192,8 @@ class Slack
         }else{
             $response = Http::asForm()->get('https://slack.com/api/'.$endpoint, $data);
         }
+
+        dd($response);
 
         return $response;
     }

@@ -48,6 +48,9 @@ Slack::delayTo(2)->sendMessage('SLACKID', 'Test with delayTo (days)');
 Slack::delayTo(30, 'minutes')->sendMessage('SLACKID', 'Test with delayTo (minutes)');
 Slack::delayTo(4, 'hours')->sendMessage('SLACKID', 'Test with delayTo (hours)');
 Slack::delayTo(6, 'months')->sendMessage('SLACKID', 'Test with delayTo (months)');
+
+//Enviar uma mensagem com botões de confirmação
+Slack::sendMessageWithConfirmButtons('SLACKID', "Voulez-vous confirmer cet action ?", ['Oui', 'Non']);
 ```
 
 
