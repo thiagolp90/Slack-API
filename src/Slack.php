@@ -11,6 +11,11 @@ class Slack
     public $delayed = false;
     public $timeToDelay;
 
+    public function __construct()
+    {
+        $this->timeToDelay = now();
+    }
+
     /**
      * Add a delay to send
      * @param int $time
@@ -45,6 +50,7 @@ class Slack
     {
         $this->delayed = true;
         $this->timeToDelay = $time;
+
         return $this;
     }
 
@@ -55,26 +61,97 @@ class Slack
      */
     public function sendMessage(string $to, string $message){
         $checkSent = true;
-        if(!$this->delayed){
-            $this->timeToDelay = now();
-            try {
-                $data = [
-                    'channel' => $to,
-                    'text' => $message
-                ];
-                $this->request('chat.postMessage', $data);
-            } catch (\Throwable $th) {
-                $checkSent = false;
-            }
-        }
         $data = [
             'sended_at' => $this->timeToDelay,
             'message' => $message,
             'slack_id' => $to
         ];
         $slack = SlackNotification::create($data);
-        if($checkSent && !$this->delayed){
-            $slack->delete();
+        if(!$this->delayed){
+            try {
+                $data = [
+                    'channel' => $to,
+                    'text' => $message
+                ];
+                return $this->request('chat.postMessage', $data);
+            } catch (\Throwable $th) {
+                $checkSent = false;
+                return ['success' => false];
+            }
+            if($checkSent){
+                $slack->delete();
+            }
+        }
+    }
+
+    /**
+     * Send a slack message with confirm buttons
+     * @param string $to
+     * @param string $message
+     * @param array $buttons
+     */
+    public function sendMessageWithConfirmButtons(string $to, string $message, array $buttons = ['Yes', 'No'])
+    {
+        $checkSent = true;
+        $data = [
+            'sended_at' => $this->timeToDelay,
+            'message' => $message,
+            'with_confirm_buttons' => true,
+            'slack_id' => $to
+        ];
+        $slack = SlackNotification::create($data);
+
+        if(!$this->delayed){
+            try {
+                $blocks = json_encode([
+                    [
+                        "type" => "section",
+                        "text" => [
+                            "type" => "mrkdwn",
+                            "text" => $message
+                        ]
+                    ],
+                    [
+                        "type" => "actions",
+                        "block_id" => "$slack->id",
+                        "elements" => [
+                            [
+                                "type" => "button",
+                                "text" => [
+                                    "type" => "plain_text",
+                                    "text" => $buttons[0],
+                                    "emoji" => false
+                                ],
+                                "style" => "primary",
+                                "value" => "1"
+                            ],
+                            [
+                                "type" => "button",
+                                "text" => [
+                                    "type" => "plain_text",
+                                    "text" => $buttons[1],
+                                    "emoji" => false
+                                ],
+                                "style" => "danger",
+                                "value" => "0"
+                            ],
+                        ]
+                    ]
+                ]);
+                $data = [
+                    'channel' => $to,
+                    'text' => $message,
+                    'blocks' => $blocks
+                ];
+                return $this->request('chat.postMessage', $data);
+            } catch (\Throwable $th) {
+                $checkSent = false;
+                return ['success' => false];
+            }
+
+            if($checkSent){
+                $slack->delete();
+            }
         }
     }
 
@@ -86,26 +163,40 @@ class Slack
     public function getUserIdentity($slackId){
         try {
             $data = ['user' => $slackId];
-            $result = $this->request('users.identity', $data, 'GET');
+            return $this->request('users.identity', $data, 'GET');
         } catch (\Throwable $th) {
             return ['success' => false];
         }
-
-        return json_decode($result, true);
     }
 
     /**
      * Get a list of users
      * @return array
      */
-    public function getUsersList(){
+    public function getUsersList()
+    {
         try {
-            $result = $this->request('users.identity', [], 'GET');
+            return $this->request('users.identity', [], 'GET');
         } catch (\Throwable $th) {
             return ['success' => false];
         }
+    }
 
-        return json_decode($result, true);
+    /**
+     * Send callback to Slack Webhook
+     * @param string $url
+     * @param array $message
+     * @return array
+     */
+    public function callback($url, $message)
+    {
+        $data = [
+            'replace_original' => true,
+            'text' => $message
+        ];
+        $response = Http::asForm()->post($url, $data);
+
+        return json_decode($response->body(), true);
     }
 
     /**
@@ -113,6 +204,7 @@ class Slack
      * @param string $endpoint
      * @param array $message
      * @param string $verb
+     * @return array
      */
     public function request(string $endpoint, array $data = [], string $verb = 'POST'){
         $default = [
@@ -128,6 +220,6 @@ class Slack
             $response = Http::asForm()->get('https://slack.com/api/'.$endpoint, $data);
         }
 
-        return $response;
+        return json_decode($response->body(), true);
     }
 }

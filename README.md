@@ -1,6 +1,6 @@
 ## Sobre
 
-Pacote Laravel para enviar mensagens instantâneas e com delay via Slack API.
+Pacote Laravel para enviar mensagens instantâneas ou com delay via Slack API.
 
 ## Instalação
 
@@ -10,7 +10,7 @@ composer require thiagolp90/slack
 
 ## Configuração
 
-Configure as variáveis de ambiente no arquivo **.env** com os dados de sua aplicação Slack (Sua aplicação precisa de ser configurada corretamente e ter as permissões necessárias para isto).
+Configure as variáveis de ambiente no arquivo ``.env`` com os dados de sua aplicação Slack (Sua aplicação precisa de ser configurada corretamente e ter as permissões necessárias para isto).
 
 ```
 SLACK_TOKEN=XXXXXXXXX
@@ -23,7 +23,7 @@ Faça a migração para poder salvar o histórico das mensagens enviadas e para 
 php artisan migrate
 ```
 
-Adicione no seu [Scheduling Queued Job](https://laravel.com/docs/master/scheduling#scheduling-queued-jobs) no arquivo **app/Console/Kernel.php** para enviar as mensagens com delay (Seu servidor precisa estar configurado para executar tarefas via crontab):
+Adicione no seu [Scheduling Queued Job](https://laravel.com/docs/master/scheduling#scheduling-queued-jobs) no arquivo ``app/Console/Kernel.php`` para enviar as mensagens com delay (Seu servidor precisa estar configurado para executar tarefas via crontab):
 
 ```php
 use Developes\Slack\Jobs\SendSlackNotifications;
@@ -31,6 +31,16 @@ use Developes\Slack\Jobs\SendSlackNotifications;
 //Dentro do método schedule adicione:
 $schedule->job(new SendSlackNotifications)->everyMinute();
 ```
+
+Para utilisar o método ``sendMessageWithConfirmButtons`` adicione a seguinte linha no seu arquivo ``app/Http/Middleware/VerifyCsrfToken.php``, para receber a resposta do Webhook enviado pela Slack:
+
+```php
+protected $except = [
+    '/slack/webhook'
+];
+```
+
+Não esqueça de modificar a Request Url nas configurações do seu aplicativo Slack em Interactivity para ``https://www.meusite.com/slack/webhook``.
 
 ## Como usar
 
@@ -48,6 +58,9 @@ Slack::delayTo(2)->sendMessage('SLACKID', 'Test with delayTo (days)');
 Slack::delayTo(30, 'minutes')->sendMessage('SLACKID', 'Test with delayTo (minutes)');
 Slack::delayTo(4, 'hours')->sendMessage('SLACKID', 'Test with delayTo (hours)');
 Slack::delayTo(6, 'months')->sendMessage('SLACKID', 'Test with delayTo (months)');
+
+//Enviar uma mensagem com botões de confirmação
+Slack::sendMessageWithConfirmButtons('SLACKID', "Voulez-vous confirmer cet action ?", ['Oui', 'Non']);
 ```
 
 

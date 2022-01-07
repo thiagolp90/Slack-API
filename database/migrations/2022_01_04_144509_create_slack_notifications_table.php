@@ -17,7 +17,10 @@ class CreateSlackNotificationsTable extends Migration
             $table->id();
             $table->string('slack_id', 50);
             $table->longText('message');
+            $table->boolean('with_confirm_buttons');
+            $table->boolean('confirmed');
             $table->timestamp('sended_at')->nullable();
+            $table->timestamp('confirmed_at')->nullable();
             $table->timestamps();
             $table->softDeletes();
         });
