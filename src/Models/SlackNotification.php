@@ -12,7 +12,9 @@ class SlackNotification extends Model
     use HasFactory;
     use SoftDeletes;
 
-    protected $fillable = ['slack_id', 'message', 'sended_at'];
+    protected $fillable = ['slack_id', 'message', 'with_confirm_buttons', 'confirmed', 'sended_at', 'confirmed_at'];
+
+    protected $dates = ['sended_at', 'confirmed_at'];
 
     /**
      * Relationship with slack_users table

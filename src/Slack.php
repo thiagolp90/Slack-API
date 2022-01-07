@@ -50,6 +50,7 @@ class Slack
     {
         $this->delayed = true;
         $this->timeToDelay = $time;
+
         return $this;
     }
 
@@ -72,9 +73,10 @@ class Slack
                     'channel' => $to,
                     'text' => $message
                 ];
-                $this->request('chat.postMessage', $data);
+                return $this->request('chat.postMessage', $data);
             } catch (\Throwable $th) {
                 $checkSent = false;
+                return ['success' => false];
             }
             if($checkSent){
                 $slack->delete();
@@ -82,6 +84,12 @@ class Slack
         }
     }
 
+    /**
+     * Send a slack message with confirm buttons
+     * @param string $to
+     * @param string $message
+     * @param array $buttons
+     */
     public function sendMessageWithConfirmButtons(string $to, string $message, array $buttons = ['Yes', 'No'])
     {
         $checkSent = true;
@@ -92,51 +100,55 @@ class Slack
             'slack_id' => $to
         ];
         $slack = SlackNotification::create($data);
+
         if(!$this->delayed){
             try {
+                $blocks = json_encode([
+                    [
+                        "type" => "section",
+                        "text" => [
+                            "type" => "mrkdwn",
+                            "text" => $message
+                        ]
+                    ],
+                    [
+                        "type" => "actions",
+                        "block_id" => "$slack->id",
+                        "elements" => [
+                            [
+                                "type" => "button",
+                                "text" => [
+                                    "type" => "plain_text",
+                                    "text" => $buttons[0],
+                                    "emoji" => false
+                                ],
+                                "style" => "primary",
+                                "value" => "1"
+                            ],
+                            [
+                                "type" => "button",
+                                "text" => [
+                                    "type" => "plain_text",
+                                    "text" => $buttons[1],
+                                    "emoji" => false
+                                ],
+                                "style" => "danger",
+                                "value" => "0"
+                            ],
+                        ]
+                    ]
+                ]);
                 $data = [
                     'channel' => $to,
                     'text' => $message,
-                    'blocks' => [
-                        [
-                            "type" => "section",
-                            "text" => [
-                                "type" => "mrkdwn",
-                                "text" => $message
-                            ]
-                        ],
-                        [
-                            "type" => "actions",
-                            "block_id" => $slack->id,
-                            "elements" => [
-                                [
-                                    "type" => "button",
-                                    "text" => [
-                                        "type" => "plain_text",
-                                        "text" => $buttons[0],
-                                        "emoji" => false
-                                    ],
-                                    "style" => "green",
-                                    "value" => 1
-                                ],
-                                [
-                                    "type" => "button",
-                                    "text" => [
-                                        "type" => "plain_text",
-                                        "text" => $buttons[1],
-                                        "emoji" => false
-                                    ],
-                                    "style" => "red",
-                                    "value" => 0
-                                ],
-                            ]
-                        ]
-                    ]
+                    'blocks' => $blocks
                 ];
-                $this->request('chat.postMessage', $data);
+                return $this->request('chat.postMessage', $data);
             } catch (\Throwable $th) {
                 $checkSent = false;
+                return ['success' => false];
             }
+
             if($checkSent){
                 $slack->delete();
             }
@@ -151,26 +163,40 @@ class Slack
     public function getUserIdentity($slackId){
         try {
             $data = ['user' => $slackId];
-            $result = $this->request('users.identity', $data, 'GET');
+            return $this->request('users.identity', $data, 'GET');
         } catch (\Throwable $th) {
             return ['success' => false];
         }
-
-        return json_decode($result, true);
     }
 
     /**
      * Get a list of users
      * @return array
      */
-    public function getUsersList(){
+    public function getUsersList()
+    {
         try {
-            $result = $this->request('users.identity', [], 'GET');
+            return $this->request('users.identity', [], 'GET');
         } catch (\Throwable $th) {
             return ['success' => false];
         }
+    }
 
-        return json_decode($result, true);
+    /**
+     * Send callback to Slack Webhook
+     * @param string $url
+     * @param array $message
+     * @return array
+     */
+    public function callback($url, $message)
+    {
+        $data = [
+            'replace_original' => true,
+            'text' => $message
+        ];
+        $response = Http::asForm()->post($url, $data);
+
+        return json_decode($response->body(), true);
     }
 
     /**
@@ -178,6 +204,7 @@ class Slack
      * @param string $endpoint
      * @param array $message
      * @param string $verb
+     * @return array
      */
     public function request(string $endpoint, array $data = [], string $verb = 'POST'){
         $default = [
@@ -193,8 +220,6 @@ class Slack
             $response = Http::asForm()->get('https://slack.com/api/'.$endpoint, $data);
         }
 
-        dd($response);
-
-        return $response;
+        return json_decode($response->body(), true);
     }
 }
